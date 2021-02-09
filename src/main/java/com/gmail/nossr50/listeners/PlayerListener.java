@@ -72,10 +72,12 @@ public class PlayerListener implements Listener {
         /* WORLD BLACKLIST CHECK */
         if(WorldBlacklist.isWorldBlacklisted(event.getPlayer().getWorld())) {
             //Remove scoreboards
-            ScoreboardManager.teardownPlayer(event.getPlayer());
+            if(Config.getInstance().getScoreboardsEnabled()) {
+                ScoreboardManager.teardownPlayer(event.getPlayer());
+            }
             return;
-        } else if(WorldBlacklist.isWorldBlacklisted(event.getFrom().getWorld())) {
-            //This only fires if they are traveling to a non-blacklisted world from a blacklisted world
+        } else if(WorldBlacklist.isWorldBlacklisted(event.getFrom().getWorld()) && Config.getInstance().getScoreboardsEnabled()) {
+            //This only fires if they are travelling to a non-blacklisted world from a blacklisted world
 
             //Setup scoreboards
             ScoreboardManager.setupPlayer(event.getPlayer());
@@ -763,7 +765,7 @@ public class PlayerListener implements Listener {
                     player.setVelocity(player.getEyeLocation().getDirection().multiply(10));
                 }
 
-                mcMMOPlayer.getFishingManager().setFishingRodCastTimestamp();
+                //mcMMOPlayer.getFishingManager().setFishingRodCastTimestamp();
             }
         }
 
@@ -815,19 +817,24 @@ public class PlayerListener implements Listener {
 
                 FakePlayerAnimationEvent fakeSwing = new FakePlayerAnimationEvent(event.getPlayer()); //PlayerAnimationEvent compat        
                 if (herbalismManager.canGreenThumbBlock(blockState)) {
-                    Bukkit.getPluginManager().callEvent(fakeSwing);
-                    player.getInventory().getItemInMainHand().setAmount(heldItem.getAmount() - 1);
-                    player.updateInventory();
-                    if (herbalismManager.processGreenThumbBlocks(blockState) && EventUtils.simulateBlockBreak(block, player, false)) {
-                        blockState.update(true);
+                    //call event for Green Thumb Block
+                    if(!EventUtils.callSubSkillBlockEvent(player, SubSkillType.HERBALISM_GREEN_THUMB, block).isCancelled()) {
+                        Bukkit.getPluginManager().callEvent(fakeSwing);
+                        player.getInventory().getItemInMainHand().setAmount(heldItem.getAmount() - 1);
+                        player.updateInventory();
+                        if (herbalismManager.processGreenThumbBlocks(blockState) && EventUtils.simulateBlockBreak(block, player, false)) {
+                            blockState.update(true);
+                        }
                     }
                 }
                 /* SHROOM THUMB CHECK */
                 else if (herbalismManager.canUseShroomThumb(blockState)) {
-                    Bukkit.getPluginManager().callEvent(fakeSwing);
-                    event.setCancelled(true);
-                    if (herbalismManager.processShroomThumb(blockState) && EventUtils.simulateBlockBreak(block, player, false)) {
-                        blockState.update(true);
+                    if(!EventUtils.callSubSkillBlockEvent(player, SubSkillType.HERBALISM_SHROOM_THUMB, block).isCancelled()) {
+                        Bukkit.getPluginManager().callEvent(fakeSwing);
+                        event.setCancelled(true);
+                        if (herbalismManager.processShroomThumb(blockState) && EventUtils.simulateBlockBreak(block, player, false)) {
+                            blockState.update(true);
+                        }
                     }
                 }
                 break;
